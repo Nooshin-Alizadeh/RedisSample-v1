@@ -1,0 +1,62 @@
+{
+    "profiles": {
+        "RedisSample.Server.Api": {
+            "commandName": "Project",
+            "launchBrowser": true,
+            "launchUrl": "scalar",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "dotnetRunMessages": true,
+            "applicationUrl": "http://*:5293"
+        },
+        "WSL": {
+            "commandName": "WSL2",
+            "launchBrowser": true,
+            "launchUrl": "scalar",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://*:5293"
+            }
+        },
+        "Docker": {
+            "commandName": "SdkContainer",
+            "launchBrowser": true,
+            "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/scalar",
+            "DockerfileRunArguments": "-v C:\\DockerVolumes\\9CC4F20F-CB34-44B7-AC87-FF90A9330AB2:/container_volume",
+            "environmentVariables": {
+                "ASPNETCORE_HTTP_PORTS": "5293",
+                "ConnectionStrings__sqlite": "Data Source=/container_volume/App_Data/RedisSampleDb.db;"
+            },
+            "publishAllPorts": true,
+            "useSSL": false,
+            "httpPort": 5293
+        },
+        "IIS Express": {
+            "commandName": "IISExpress",
+            "launchBrowser": true,
+            "launchUrl": "scalar",
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        "IIS": {
+            "commandName": "IIS",
+            "launchBrowser": true,
+            "environmentVariables": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
+    },
+    "iisSettings": {
+        "windowsAuthentication": false,
+        "anonymousAuthentication": true,
+        "iis": {
+            "applicationUrl": "http://localhost:5293/"
+        },
+        "iisExpress": {
+            "applicationUrl": "http://localhost:5293/"
+        }
+    },
+    "$schema": "http://json.schemastore.org/launchsettings.json"
+}

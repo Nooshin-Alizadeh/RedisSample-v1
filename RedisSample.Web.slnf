@@ -1,0 +1,14 @@
+{
+  "solution": {
+    "path": "RedisSample.slnx",
+    "projects": [
+      "src\\Client\\RedisSample.Client.Core\\RedisSample.Client.Core.csproj",
+      "src\\Client\\RedisSample.Client.Web\\RedisSample.Client.Web.csproj",
+      "src\\Server\\RedisSample.Server.Api\\RedisSample.Server.Api.csproj",
+      "src\\Server\\RedisSample.Server.Shared\\RedisSample.Server.Shared.csproj",
+      "src\\Server\\RedisSample.Server.Web\\RedisSample.Server.Web.csproj",
+      "src\\Shared\\RedisSample.Shared.csproj",
+      "src\\Tests\\RedisSample.Tests.csproj"
+    ]
+  }
+}

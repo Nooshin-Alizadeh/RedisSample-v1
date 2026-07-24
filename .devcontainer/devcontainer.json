@@ -1,0 +1,53 @@
+{
+    "name": "RedisSample",
+    "image": "mcr.microsoft.com/dotnet/sdk:10.0.302",
+    "hostRequirements": {
+        "cpus": 8
+    },
+    "onCreateCommand": "dotnet workload install wasm-tools",
+    "waitFor": "onCreateCommand",
+    "postCreateCommand": "dotnet dev-certs https --trust",
+    "customizations": {
+        "codespaces": {
+            "openFiles": [
+                "README.md"
+            ]
+        },
+        "vscode": {
+            "extensions": [
+                "GitHub.copilot",
+                "glenn2223.live-sass",
+                "GitHub.copilot-chat",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                "ms-azuretools.vscode-docker",
+                "microsoft-aspire.aspire-vscode",
+                "ms-vscode-remote.remote-containers",
+                "ms-dotnettools.blazorwasm-companion",
+                "ms-dotnettools.vscode-dotnet-runtime"
+            ]
+        }
+    },
+    "forwardPorts": [
+        2027,
+        2129,
+        2126,
+        4274,
+        5000,
+        5293
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/python": {},
+        "ghcr.io/devcontainers/features/powershell:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/devcontainers/features/node:1": { "version": "24" },
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+            "version": "latest",
+            "helm": "latest",
+            "minikube": "latest"
+        }
+    },
+    "remoteEnv": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+    }
+}
