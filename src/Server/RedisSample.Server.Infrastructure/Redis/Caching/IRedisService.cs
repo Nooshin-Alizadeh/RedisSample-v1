@@ -3,7 +3,7 @@ namespace RedisSample.Server.Infrastructure.Redis.Caching;
 
 public interface IRedisService
 {
-    Task SetAsync<T>(
+    Task<bool> SetAsync<T>(
         string key,
         T value,
         TimeSpan? expiry = null);
