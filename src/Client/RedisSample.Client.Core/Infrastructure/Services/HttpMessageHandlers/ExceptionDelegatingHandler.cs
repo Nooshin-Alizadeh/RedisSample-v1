@@ -22,7 +22,16 @@ public partial class ExceptionDelegatingHandler(PubSubService pubSubService,
         {
             try
             {
-                var response = await base.SendAsync(request, cancellationToken);
+                HttpResponseMessage? response;
+                try
+                {
+                    response = await base.SendAsync(request, cancellationToken);
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
 
                 if (response.Headers.TryGetValues("Request-Id", out var requestId))
                 {

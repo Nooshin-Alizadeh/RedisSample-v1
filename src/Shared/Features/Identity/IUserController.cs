@@ -2,7 +2,7 @@ using RedisSample.Shared.Features.Identity.Dtos;
 
 namespace RedisSample.Shared.Features.Identity;
 
-[Route("api/v1/[controller]/[action]/"), AuthorizedApi]
+[Route("api/[controller]/[action]/"), AuthorizedApi]
 public interface IUserController : IAppController
 {
     [HttpGet]

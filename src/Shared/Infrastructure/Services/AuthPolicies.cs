@@ -22,5 +22,6 @@ public class AuthPolicies
     /// checked against the current time, so it survives refresh token calls (e.g. tenant switches) until it naturally expires.
     /// </summary>
     public const string ELEVATED_ACCESS = nameof(ELEVATED_ACCESS);
+    //public const string TENANT_SELECTED = nameof(TENANT_SELECTED);
 
 }

@@ -1,3 +1,5 @@
+using RedisSample.Client.Core.Components.Pages.Products;
+
 namespace RedisSample.Client.Core.Components.Layout;
 
 public partial class AppJsBridge
@@ -38,4 +40,16 @@ public partial class AppJsBridge
         await base.DisposeAsync(disposing);
         dotnetObj?.Dispose();
     }
+
+
+    //private DotNetObjectReference<ProductsPage>? _objRef;
+
+    //protected override async Task OnAfterRenderAsync(bool firstRender)
+    //{
+    //    if (firstRender)
+    //    {
+    //        _objRef = DotNetObjectReference.Create(this);
+    //        await JS.InvokeVoidAsync("registerMediaQuery", _objRef);
+    //    }
+    //}
 }

@@ -321,12 +321,12 @@ public static partial class Program
             c.BaseAddress = new Uri("https://www.google.com/recaptcha/");
         });
 
-        services.AddHttpClient<NugetStatisticsService>(c =>
-        {
-            c.Timeout = TimeSpan.FromSeconds(20);
-            c.BaseAddress = new Uri("https://azuresearch-usnc.nuget.org");
-            c.DefaultRequestVersion = HttpVersion.Version11;
-        });
+        //services.AddHttpClient<NugetStatisticsService>(c =>
+        //{
+        //    c.Timeout = TimeSpan.FromSeconds(20);
+        //    c.BaseAddress = new Uri("https://azuresearch-usnc.nuget.org");
+        //    c.DefaultRequestVersion = HttpVersion.Version11;
+        //});
 
         services.AddHttpClient<ResponseCacheService>(c =>
         {

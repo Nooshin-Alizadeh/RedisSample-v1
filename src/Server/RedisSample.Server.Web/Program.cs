@@ -1,6 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using RedisSample.Client.Core.Infrastructure.Services;
 using RedisSample.Server.Api.Infrastructure.Data;
 using RedisSample.Server.Web.Infrastructure.Services;
-using RedisSample.Client.Core.Infrastructure.Services;
 
 namespace RedisSample.Server.Web;
 
@@ -33,7 +34,7 @@ public static partial class Program
         {
             await using var scope = app.Services.CreateAsyncScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await dbContext.Database.EnsureCreatedAsync(); // It's recommended to start using ef-core migrations.
+            await dbContext.Database.MigrateAsync(); // It's recommended to start using ef-core migrations.
         }
 
         app.ConfigureMiddlewares();

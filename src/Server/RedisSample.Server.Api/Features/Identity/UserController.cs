@@ -14,13 +14,15 @@ using RedisSample.Server.Api.Features.PushNotification;
 
 namespace RedisSample.Server.Api.Features.Identity;
 
-[ApiVersion(1)]
-[ApiController, Route("api/v{v:apiVersion}/[controller]/[action]")]
+[ApiController, Route("api/[controller]/[action]")]
 public partial class UserController : AppControllerBase, IUserController
 {
     [AutoInject] private UrlEncoder urlEncoder = default!;
     [AutoInject] private PhoneService phoneService = default!;
+    //[AutoInject] private EmailService emailService = default!;
+
     [AutoInject] private IdentityEmailService emailService = default!;
+
     [AutoInject] private IUserStore<User> userStore = default!;
     [AutoInject] private UserManager<User> userManager = default!;
     [AutoInject] private IHostEnvironment hostEnvironment = default!;
@@ -53,32 +55,18 @@ public partial class UserController : AppControllerBase, IUserController
             .OrderByDescending(us => us.RenewedOn);
     }
 
-    [HttpPost, EnableCors("CorsWithCredentials" /* Required for Cookies.Delete */)]
+    [HttpPost]
     public async Task SignOut(CancellationToken cancellationToken)
     {
         var currentSessionId = User.GetSessionId();
 
         var userSession = await DbContext.UserSessions
-            .FirstOrDefaultAsync(us => us.Id == currentSessionId, cancellationToken) ?? throw new ResourceNotFoundException().WithData("Reason", "User session not found.");
+            .FirstOrDefaultAsync(us => us.Id == currentSessionId, cancellationToken) ?? throw new ResourceNotFoundException();
 
         DbContext.UserSessions.Remove(userSession);
         await DbContext.SaveChangesAsync(cancellationToken);
 
         await signInManager.SignOutAsync();
-
-        var appPlatformType = Enum.Parse<AppPlatformType>(HttpContext.Request.Headers["X-App-Platform"].Single()!);
-        if (appPlatformType is not AppPlatformType.Web)
-            return;
-
-        HttpContext.Response.Cookies.Delete("access_token", new()
-        {
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Secure = hostEnvironment.IsDevelopment() is false,
-            Path = "/",
-            Domain = HttpContext.Request.GetWebAppUrl().Host,
-            IsEssential = true
-        });
     }
 
     [HttpPost("{id}"), Authorize(Policy = AuthPolicies.ELEVATED_ACCESS)]
@@ -92,7 +80,7 @@ public partial class UserController : AppControllerBase, IUserController
             throw new BadRequestException(); // "Call SignOut instead"
 
         var userSession = await DbContext.UserSessions
-            .FirstOrDefaultAsync(us => us.Id == id && us.UserId == userId, cancellationToken) ?? throw new ResourceNotFoundException().WithData("Reason", "User session not found.");
+            .FirstOrDefaultAsync(us => us.Id == id && us.UserId == userId, cancellationToken) ?? throw new ResourceNotFoundException();
 
         DbContext.UserSessions.Remove(userSession);
         await DbContext.SaveChangesAsync(cancellationToken);
@@ -105,13 +93,9 @@ public partial class UserController : AppControllerBase, IUserController
         }
     }
 
-    [HttpPost, EnableCors("CorsWithCredentials" /* Required for Cookies.Append */)]
+    [HttpPost]
     public async Task UpdateSession(UpdateUserSessionRequestDto request, CancellationToken cancellationToken)
     {
-        // UpdateSession gets called after SignIn, Refresh and client app initialization to update user session info,
-        // example scenario would be when user restarts the app after an update or after changing device settings like language.
-        // so in server side, we always have the latest info about the user session.
-
         var affectedRows = await DbContext.UserSessions.Where(us => us.Id == User.GetSessionId()).ExecuteUpdateAsync(us =>
             us.SetProperty(x => x.AppVersion, request.AppVersion)
                 .SetProperty(x => x.DeviceInfo, request.DeviceInfo)
@@ -120,28 +104,6 @@ public partial class UserController : AppControllerBase, IUserController
 
         if (affectedRows == 0)
             throw new ResourceNotFoundException();
-
-        // access_token's value must be set to cookies for pre-rendering scenarios.
-        // But during SignIn/Refresh calls, the cookie can't be set because the access_token value is not available yet.
-        // UpdateSession is a good place to set the access token cookie for web clients.
-
-        var appPlatformType = Enum.Parse<AppPlatformType>(HttpContext.Request.Headers["X-App-Platform"].Single()!);
-        if (appPlatformType is not AppPlatformType.Web)
-            return;
-
-        var accessToken = HttpContext.GetAccessToken() ?? throw new InvalidOperationException("Access token not found.");
-        DateTimeOffset expirationTime = DateTimeOffset.FromUnixTimeSeconds(User.GetClaimValue<long>("exp"));
-
-        Response.Cookies.Append("access_token", accessToken, new CookieOptions
-        {
-            HttpOnly = true,
-            SameSite = SameSiteMode.Strict,
-            Secure = hostEnvironment.IsDevelopment() is false,
-            Path = "/",
-            Expires = expirationTime,
-            Domain = HttpContext.Request.GetWebAppUrl().Host,
-            IsEssential = true
-        });
     }
 
     [HttpPut]
@@ -178,7 +140,7 @@ public partial class UserController : AppControllerBase, IUserController
 
         if (await userManager.IsLockedOutAsync(user!))
         {
-            var tryAgainIn = (user!.LockoutEnd! - TimeProvider.GetUtcNow()).Value;
+            var tryAgainIn = (user!.LockoutEnd! - DateTimeOffset.UtcNow).Value;
             throw new BadRequestException(Localizer[nameof(AppStrings.UserLockedOut), tryAgainIn.Humanize(culture: CultureInfo.CurrentUICulture)]).WithExtensionData("TryAgainIn", tryAgainIn);
         }
 
@@ -206,12 +168,12 @@ public partial class UserController : AppControllerBase, IUserController
     {
         var user = await userManager.FindByIdAsync(User.GetUserId().ToString());
 
-        var resendDelay = (TimeProvider.GetUtcNow() - user!.EmailTokenRequestedOn) - AppSettings.Identity.EmailTokenLifetime;
+        var resendDelay = (DateTimeOffset.Now - user!.EmailTokenRequestedOn) - AppSettings.Identity.EmailTokenLifetime;
 
         if (resendDelay < TimeSpan.Zero)
             throw new TooManyRequestsException(Localizer[nameof(AppStrings.WaitForEmailTokenRequestResendDelay), resendDelay.Value.Humanize(culture: CultureInfo.CurrentUICulture)]).WithExtensionData("TryAgainIn", resendDelay);
 
-        user.EmailTokenRequestedOn = TimeProvider.GetUtcNow();
+        user.EmailTokenRequestedOn = DateTimeOffset.Now;
         var result = await userManager.UpdateAsync(user);
         if (result.Succeeded is false)
             throw new ResourceValidationException(result.Errors.Select(e => new LocalizedString(e.Code, e.Description)).ToArray());
@@ -233,7 +195,7 @@ public partial class UserController : AppControllerBase, IUserController
     {
         var user = await userManager.FindByIdAsync(User.GetUserId().ToString());
 
-        var expired = (TimeProvider.GetUtcNow() - user!.EmailTokenRequestedOn) > AppSettings.Identity.EmailTokenLifetime;
+        var expired = (DateTimeOffset.Now - user!.EmailTokenRequestedOn) > AppSettings.Identity.EmailTokenLifetime;
 
         if (expired)
             throw new BadRequestException(nameof(AppStrings.ExpiredToken));
@@ -267,12 +229,12 @@ public partial class UserController : AppControllerBase, IUserController
         request.PhoneNumber = phoneService.NormalizePhoneNumber(request.PhoneNumber);
         var user = await userManager.FindByIdAsync(User.GetUserId().ToString());
 
-        var resendDelay = (TimeProvider.GetUtcNow() - user!.PhoneNumberTokenRequestedOn) - AppSettings.Identity.PhoneNumberTokenLifetime;
+        var resendDelay = (DateTimeOffset.Now - user!.PhoneNumberTokenRequestedOn) - AppSettings.Identity.PhoneNumberTokenLifetime;
 
         if (resendDelay < TimeSpan.Zero)
             throw new TooManyRequestsException(Localizer[nameof(AppStrings.WaitForPhoneNumberTokenRequestResendDelay), resendDelay.Value.Humanize(culture: CultureInfo.CurrentUICulture)]).WithExtensionData("TryAgainIn", resendDelay);
 
-        user.PhoneNumberTokenRequestedOn = TimeProvider.GetUtcNow();
+        user.PhoneNumberTokenRequestedOn = DateTimeOffset.Now;
         var result = await userManager.UpdateAsync(user);
 
         if (result.Succeeded is false)
@@ -292,7 +254,7 @@ public partial class UserController : AppControllerBase, IUserController
         request.PhoneNumber = phoneService.NormalizePhoneNumber(request.PhoneNumber);
         var user = await userManager.FindByIdAsync(User.GetUserId().ToString());
 
-        var expired = (TimeProvider.GetUtcNow() - user!.PhoneNumberTokenRequestedOn) > AppSettings.Identity.PhoneNumberTokenLifetime;
+        var expired = (DateTimeOffset.Now - user!.PhoneNumberTokenRequestedOn) > AppSettings.Identity.PhoneNumberTokenLifetime;
 
         if (expired)
             throw new BadRequestException(nameof(AppStrings.ExpiredToken));
@@ -338,13 +300,11 @@ public partial class UserController : AppControllerBase, IUserController
             throw new ResourceValidationException(result.Errors.Select(err => new LocalizedString(err.Code, err.Description)).ToArray());
     }
 
-#pragma warning disable ASP0018
-    [HttpPost, Route("~/api/v{v:apiVersion}/[controller]/2fa")]
-#pragma warning restore ASP0018
+    [HttpPost, Route("~/api/[controller]/2fa")]
     public async Task<TwoFactorAuthResponseDto> TwoFactorAuth(TwoFactorAuthRequestDto request, CancellationToken cancellationToken)
     {
         var userId = User.GetUserId();
-        var user = await userManager.FindByIdAsync(userId.ToString()) ?? throw new ResourceNotFoundException().WithData("Reason", "User not found.");
+        var user = await userManager.FindByIdAsync(userId.ToString()) ?? throw new ResourceNotFoundException();
 
         if (request.Enable is true)
         {
@@ -425,13 +385,13 @@ public partial class UserController : AppControllerBase, IUserController
     {
         var user = await userManager.FindByIdAsync(User.GetUserId().ToString());
 
-        var resendDelay = (TimeProvider.GetUtcNow() - user!.ElevatedAccessTokenRequestedOn) - AppSettings.Identity.BearerTokenExpiration;
+        var resendDelay = (DateTimeOffset.Now - user!.ElevatedAccessTokenRequestedOn) - AppSettings.Identity.BearerTokenExpiration;
         // Elevated access token claim gets added to access token upon refresh token request call, so their lifetime would be the same
 
         if (resendDelay < TimeSpan.Zero)
             throw new TooManyRequestsException(Localizer[nameof(AppStrings.WaitForElevatedAccessTokenRequestResendDelay), resendDelay.Value.Humanize(culture: CultureInfo.CurrentUICulture)]).WithExtensionData("TryAgainIn", resendDelay);
 
-        user.ElevatedAccessTokenRequestedOn = TimeProvider.GetUtcNow();
+        user.ElevatedAccessTokenRequestedOn = DateTimeOffset.Now;
         var result = await userManager.UpdateAsync(user);
         if (result.Succeeded is false)
             throw new ResourceValidationException(result.Errors.Select(e => new LocalizedString(e.Code, e.Description)).ToArray());
@@ -458,7 +418,7 @@ public partial class UserController : AppControllerBase, IUserController
             sendMessagesTasks.Add(phoneService.SendSms(smsMessage, user.PhoneNumber!));
         }
 
-        if (user.TwoFactorEnabled || (user.EmailConfirmed is false && user.PhoneNumberConfirmed is false /* Users signed-in through external sign-in */))
+        if (user.TwoFactorEnabled || (user.EmailConfirmed is false && user.PhoneNumberConfirmed is false /* Users signed-in through social sign-in */))
         {
             // Check out AppHub's comments for more info.
             var userSessionIdsExceptCurrentUserSessionId = await DbContext.UserSessions
@@ -483,7 +443,7 @@ public partial class UserController : AppControllerBase, IUserController
         var userId = User.GetUserId();
 
         var userSession = await DbContext.UserSessions
-            .FirstOrDefaultAsync(us => us.Id == userSessionId && us.UserId == userId, cancellationToken) ?? throw new ResourceNotFoundException().WithData("Reason", "User session not found.");
+            .FirstOrDefaultAsync(us => us.Id == userSessionId && us.UserId == userId, cancellationToken) ?? throw new ResourceNotFoundException();
 
         userSession.NotificationStatus = userSession.NotificationStatus is UserSessionNotificationStatus.NotConfigured ? UserSessionNotificationStatus.Allowed :
             userSession.NotificationStatus is UserSessionNotificationStatus.Allowed ? UserSessionNotificationStatus.Muted : UserSessionNotificationStatus.Allowed;
@@ -505,7 +465,6 @@ public partial class UserController : AppControllerBase, IUserController
 
         return userSession.NotificationStatus;
     }
-
 
     private static string FormatKey(string unformattedKey)
     {
@@ -529,7 +488,7 @@ public partial class UserController : AppControllerBase, IUserController
     {
         return string.Format(CultureInfo.InvariantCulture,
         AUTHENTICATOR_URI_FORMAT,
-        urlEncoder.Encode("bit platform RedisSample"),
+        urlEncoder.Encode("bit platform NegotiaHub"),
                              urlEncoder.Encode(user),
                              unformattedKey);
     }

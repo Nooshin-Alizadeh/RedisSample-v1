@@ -26,7 +26,7 @@ public partial class TestsAssemblyInitializer
         {
             await using var scope = testServer.WebApp.Services.CreateAsyncScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await dbContext.Database.EnsureCreatedAsync(); // It's recommended to start using ef-core migrations.
+            await dbContext.Database.MigrateAsync(); // It's recommended to start using ef-core migrations.
         }
     }
 

@@ -10,12 +10,12 @@
         </AuthorizeView>
 
         <AuthorizeView Policy="@AppFeatures.AdminPanel.Dashboard_View">
-            <AuthorizeView Policy="@AuthPolicies.TENANT_SELECTED" Context="_">
+            <AuthorizeView Policy="@AuthPolicies.ELEVATED_ACCESS" Context="_">
                 <BitNavBarOption Text="@Localizer[nameof(AppStrings.Dashboard)]" IconName="@BitIconName.BarChartVerticalFill" Url="@PageUrls.Dashboard" />
             </AuthorizeView>
         </AuthorizeView>
         <AuthorizeView Policy="@AppFeatures.AdminPanel.ProductCatalog_Manage">
-            <AuthorizeView Policy="@AuthPolicies.TENANT_SELECTED" Context="_">
+            <AuthorizeView Policy="@AuthPolicies.ELEVATED_ACCESS" Context="_">
                 <BitNavBarOption Text="@Localizer[nameof(AppStrings.Categories)]" IconName="@BitIconName.BuildQueue" Url="@PageUrls.Categories" />
                 <BitNavBarOption Text="@Localizer[nameof(AppStrings.Products)]" IconName="@BitIconName.Product" Url="@PageUrls.Products" />
             </AuthorizeView>

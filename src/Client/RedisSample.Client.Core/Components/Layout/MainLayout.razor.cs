@@ -154,7 +154,20 @@ public partial class MainLayout : IAsyncDisposable
         {
             if (authUser.GetUserId() != currentUser?.Id)
             {
-                currentUser = await userController.GetCurrentUser(getCurrentUserCts.Token);
+                try
+                {
+                    currentUser = await userController.GetCurrentUser(getCurrentUserCts.Token);
+                }
+                catch (Exception)
+                {
+                    //if (authUser.IsAuthenticated() is true)
+                    //{
+                    //    var id = authUser.GetUserId();
+
+                    //    currentUser = new UserDto { Id = id }; 
+                    //}
+                   // throw;
+                }
             }
 
         }
