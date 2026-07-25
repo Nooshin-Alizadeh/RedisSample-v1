@@ -87,6 +87,7 @@
     <ItemGroup>
         <Content Include=".config\dotnet-tools.json" />
         <Content Include="..\..\..\Bit.ResxTranslator.json" Link="Features\Identity\Resources\Bit.ResxTranslator.json" />
+        <ProjectReference Include="..\RedisSample.Server.Infrastructure\RedisSample.Server.Infrastructure.csproj" />
         <ProjectReference Include="..\RedisSample.Server.Shared\RedisSample.Server.Shared.csproj" />
     </ItemGroup>
 

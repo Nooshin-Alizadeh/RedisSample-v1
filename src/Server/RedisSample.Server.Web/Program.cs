@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RedisSample.Client.Core.Infrastructure.Services;
 using RedisSample.Server.Api.Infrastructure.Data;
 using RedisSample.Server.Web.Infrastructure.Services;
-
+using RedisSample.Server.Infrastructure.Redis.Extensions;
 namespace RedisSample.Server.Web;
 
 public static partial class Program
@@ -18,6 +18,7 @@ public static partial class Program
         });
 
         AppEnvironment.Set(builder.Environment.EnvironmentName);
+        builder.Services.AddRedis("localhost:6379");
 
         builder.Configuration.AddClientConfigurations(clientEntryAssemblyName: "RedisSample.Client.Web");
 

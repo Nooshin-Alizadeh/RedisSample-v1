@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.SignalR;
-using RedisSample.Server.Api.Infrastructure.SignalR;
-using RedisSample.Shared.Features.Products;
 using Ganss.Xss;
+using Microsoft.AspNetCore.SignalR;
 using RedisSample.Server.Api.Infrastructure.Services;
+using RedisSample.Server.Api.Infrastructure.SignalR;
+using RedisSample.Server.Infrastructure.Redis.Caching;
+using RedisSample.Shared.Features.Products;
 
 namespace RedisSample.Server.Api.Features.Products;
 
@@ -17,6 +18,7 @@ public partial class ProductController : AppControllerBase, IProductController
     [AutoInject] private IHubContext<AppHub> appHubContext = default!;
     [AutoInject] private ProductEmbeddingService productEmbeddingService = default!;
     [AutoInject] private ResponseCacheService responseCacheService = default!;
+    [AutoInject] private IRedisService _redis = default!;
 
     [HttpGet, EnableQuery]
     public IQueryable<ProductDto> Get()
@@ -54,11 +56,48 @@ public partial class ProductController : AppControllerBase, IProductController
     [HttpGet("{id}")]
     public async Task<ProductDto> Get(Guid id, CancellationToken cancellationToken)
     {
+        return await getProductFromRedis(id);
         var dto = await Get().FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new ResourceNotFoundException(Localizer[nameof(AppStrings.ProductCouldNotBeFound)]);
 
         return dto;
     }
+    private void setProductToRedis(ProductDto dto)
+    {
+        var key = $"product:{dto.Id}";
+        _redis.SetAsync(key, dto, TimeSpan.FromHours(1));
+
+    }
+
+    private ProductDto getProductToRedis(ProductDto dto)
+    {
+        var key = $"product:{dto.Id}";
+        return _redis.GetAsync<ProductDto>(key).Result;
+    }
+    private async Task RemoveProductFromRedis(Guid id)
+    {
+        var key = $"product:{id}";
+        await _redis.RemoveAsync(key);
+    }
+    private async Task<bool> ExistsProductInRedis(Guid id)
+    {
+        var key = $"product:{id}";
+        return await _redis.ExistsAsync(key);
+    }
+    private async Task<ProductDto> getProductFromRedis(Guid id)
+    {
+        var key = $"product:{id}";
+        var product = await _redis.GetAsync<ProductDto>(key);
+        if (product == null)
+        {
+            var dto = await Get().FirstOrDefaultAsync(t => t.Id == id)
+                ?? throw new ResourceNotFoundException(Localizer[nameof(AppStrings.ProductCouldNotBeFound)]);
+            setProductToRedis(dto);
+            return dto;
+        }
+        return product;
+    }
+
 
     [HttpPost]
     public async Task<ProductDto> Create(ProductDto dto, CancellationToken cancellationToken)
@@ -79,7 +118,9 @@ public partial class ProductController : AppControllerBase, IProductController
 
         await PublishDashboardDataChanged(cancellationToken);
 
-        return entityToAdd.Map();
+        var _dtoEntity= entityToAdd.Map();
+        setProductToRedis(_dtoEntity);
+        return _dtoEntity;
     }
 
     [HttpPut]
@@ -102,12 +143,16 @@ public partial class ProductController : AppControllerBase, IProductController
 
         await PublishDashboardDataChanged(cancellationToken);
 
-        return entityToUpdate.Map();
+        var _dtoEntity= entityToUpdate.Map();
+        setProductToRedis(_dtoEntity);
+        return _dtoEntity;
     }
 
     [HttpDelete("{id}/{version}")]
     public async Task Delete(Guid id, long version, CancellationToken cancellationToken)
     {
+        var key = $"product:{id}";
+        var _ifREdis=ExistsProductInRedis(id);
         var entityToDelete = await DbContext.Products.FindAsync([id], cancellationToken)
             ?? throw new ResourceNotFoundException(Localizer[nameof(AppStrings.ProductCouldNotBeFound)]);
 
@@ -120,6 +165,10 @@ public partial class ProductController : AppControllerBase, IProductController
         await responseCacheService.PurgeProductCache(entityToDelete.ShortId);
 
         await PublishDashboardDataChanged(cancellationToken);
+        if (await ExistsProductInRedis(id))
+        {
+            await RemoveProductFromRedis(id);
+        }
     }
 
     private async Task PublishDashboardDataChanged(CancellationToken cancellationToken)

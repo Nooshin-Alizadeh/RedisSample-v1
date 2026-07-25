@@ -1,3 +1,4 @@
+using RedisSample.Server.Infrastructure.Redis.Extensions; 
 namespace RedisSample.Server.Api;
 
 public static partial class Program
@@ -14,7 +15,11 @@ public static partial class Program
 
         builder.Services.AddSharedProjectServices(builder.Configuration);
         builder.AddServerApiProjectServices();
-
+        #region rediis
+        builder.Services.AddRedis(
+    "localhost:6379"
+);
+        #endregion
         var app = builder.Build();
 
         if (builder.Environment.IsDevelopment())

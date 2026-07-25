@@ -64,9 +64,10 @@
     <File Path=".github/workflows/ci.yml" />
   </Folder>
   <Folder Name="/Server/">
-    <Project Path="src/Server/RedisSample.Server.Web/RedisSample.Server.Web.csproj" />
     <Project Path="src/Server/RedisSample.Server.Api/RedisSample.Server.Api.csproj" />
+    <Project Path="src/Server/RedisSample.Server.Infrastructure/RedisSample.Server.Infrastructure.csproj" Id="cd57131f-2f65-4867-91f4-f4ea05c8c100" />
     <Project Path="src/Server/RedisSample.Server.Shared/RedisSample.Server.Shared.csproj" />
+    <Project Path="src/Server/RedisSample.Server.Web/RedisSample.Server.Web.csproj" />
   </Folder>
   <Folder Name="/.SolutionItems/.grafana/">
     <File Path=".grafana/dashboard.json" />
@@ -83,7 +84,7 @@
       <Build Solution="DebugBlazorServer|*" Project="false" />
     </Project>
     <Project Path="src/Client/RedisSample.Client.Windows/RedisSample.Client.Windows.csproj">
-        <Build Solution="DebugBlazorServer|*" Project="false" />
+      <Build Solution="DebugBlazorServer|*" Project="false" />
     </Project>
   </Folder>
   <Folder Name="/Shared/">

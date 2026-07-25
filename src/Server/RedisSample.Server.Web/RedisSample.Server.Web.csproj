@@ -19,6 +19,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\RedisSample.Server.Infrastructure\RedisSample.Server.Infrastructure.csproj" />
         <ProjectReference Include="..\RedisSample.Server.Shared\RedisSample.Server.Shared.csproj" />
         <ProjectReference Include="..\RedisSample.Server.Api\RedisSample.Server.Api.csproj" />
         <ProjectReference Include="..\..\Client\RedisSample.Client.Web\RedisSample.Client.Web.csproj" />
